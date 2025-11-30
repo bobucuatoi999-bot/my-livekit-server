@@ -7,5 +7,6 @@ FROM livekit/livekit-server:latest
 COPY livekit.yaml /livekit.yaml
 
 # Run LiveKit using that config
-ENTRYPOINT ["/livekit-server", "--config", "/livekit.yaml"]
+# Using CMD instead of ENTRYPOINT for Railway compatibility
+CMD ["/livekit-server", "--config", "/livekit.yaml"]
 
