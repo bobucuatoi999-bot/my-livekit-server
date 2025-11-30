@@ -3,10 +3,12 @@
 
 FROM livekit/livekit-server:latest
 
-# Copy your config into the container
-COPY livekit.yaml /livekit.yaml
+WORKDIR /app
 
-# Run LiveKit using that config
-# Using CMD instead of ENTRYPOINT for Railway compatibility
-CMD ["/livekit-server", "--config", "/livekit.yaml"]
+# Copy your config into the container
+COPY livekit.yaml /app/livekit.yaml
+
+# Don't use ENTRYPOINT - let Railway control startup
+# Bind to 0.0.0.0 to accept connections from Railway's network
+CMD ["livekit-server", "--config", "/app/livekit.yaml", "--bind", "0.0.0.0"]
 
