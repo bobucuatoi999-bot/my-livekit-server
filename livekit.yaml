@@ -11,8 +11,6 @@ rtc:
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
-  # TCP-only mode for Railway
-  protocol: tcp
 
 # Redis configuration
 # Will be overridden by LIVEKIT_REDIS_ADDRESS environment variable
