@@ -2,25 +2,28 @@
 # This config is optimized for Railway's TCP Proxy feature (UDP is blocked)
 # Environment variables will override these values
 
-port: 7880
+# Port 7881 matches Railway health check port
+port: 7881
 
+# RTC Configuration for TCP-only mode (Railway blocks UDP)
 rtc:
   tcp_port: 7881
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
+  # TCP-only mode for Railway
+  protocol: tcp
 
-# Redis configuration - will be overridden by environment variables
-# LIVEKIT_REDIS_ADDRESS, LIVEKIT_REDIS_USERNAME, LIVEKIT_REDIS_PASSWORD
+# Redis configuration
+# Will be overridden by LIVEKIT_REDIS_ADDRESS environment variable
 redis:
   address: redis.railway.internal:6379
   username: default
   password: ""
 
-# TURN configuration - will be overridden by environment variables
-# LIVEKIT_TURN_DOMAIN, LIVEKIT_TURN_TLS_PORT
+# TURN server DISABLED
+# Railway TCP proxy handles media routing, TURN not needed
+# Disabling prevents TLS certificate errors
 turn:
-  enabled: true
-  domain: shortline.proxy.rlwy.net
-  tls_port: 35855
+  enabled: false
 
