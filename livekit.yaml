@@ -1,6 +1,5 @@
-port: 8080
+# Don't specify port - will come from --port flag
 rtc:
-  tcp_port: 8080
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
