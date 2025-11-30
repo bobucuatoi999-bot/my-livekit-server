@@ -1,0 +1,21 @@
+# LiveKit Server Configuration for Railway Deployment
+# This config is optimized for Railway's TCP Proxy feature (UDP is blocked)
+
+port: 7880
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+
+redis:
+  address: localhost:6379
+  # This will be overwritten by Railway environment variables
+
+turn:
+  enabled: true
+  domain: <YOUR_RAILWAY_TCP_DOMAIN>
+  # This will be set via Railway environment variables
+  tls_port: 7881
+
