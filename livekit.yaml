@@ -4,11 +4,14 @@ port: 7880
 
 # RTC Configuration for TCP-only mode (Railway blocks UDP)
 rtc:
-  # Use a different port for RTC to avoid conflicts
-  tcp_port: 7882
+  # Use the SAME port as main port - Railway limitation
+  tcp_port: 7880
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
+  
+  # Force TCP connections through the exposed port
+  ice_transport_tcp: true
 
 # Redis configuration
 # Will be overridden by LIVEKIT_REDIS_ADDRESS environment variable
@@ -20,6 +23,10 @@ redis:
 # Disabling prevents TLS certificate errors
 turn:
   enabled: false
+
+# Enable debug logging for troubleshooting
+logging:
+  level: debug
 
 # Disable key file requirements (using environment variables instead)
 keys: {}
