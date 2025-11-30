@@ -1,33 +1,24 @@
 # LiveKit Server Configuration for Railway Deployment
-# This config is optimized for Railway's TCP Proxy feature (UDP is blocked)
 port: 7880
 
-# RTC Configuration for TCP-only mode (Railway blocks UDP)
+# RTC Configuration - use same port as HTTP
 rtc:
-  # Use the SAME port as main port - Railway limitation
-  tcp_port: 7880
+  # Don't specify tcp_port - it will use the main port (7880)
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
-  
-  # Force TCP connections through the exposed port
-  ice_transport_tcp: true
+  # Force TCP-only mode
+  use_ice_tcp: true
 
 # Redis configuration
-# Will be overridden by LIVEKIT_REDIS_ADDRESS environment variable
 redis:
   address: redis.railway.internal:6379
 
-# Explicitly disable TURN server
-# Railway TCP proxy handles media routing, TURN not needed
-# Disabling prevents TLS certificate errors
+# Disable TURN for now
 turn:
   enabled: false
 
-# Enable debug logging for troubleshooting
+# Debug logging
 logging:
   level: debug
-
-# Disable key file requirements (using environment variables instead)
-keys: {}
 
