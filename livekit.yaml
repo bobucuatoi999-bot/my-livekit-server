@@ -1,7 +1,6 @@
 # LiveKit Server Configuration for Railway Deployment
 # This config is optimized for Railway's TCP Proxy feature (UDP is blocked)
-# Port will be set via --port flag from $PORT env var
-# Don't specify port here
+port: 7880
 
 # RTC Configuration for TCP-only mode (Railway blocks UDP)
 rtc:
