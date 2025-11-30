@@ -1,24 +1,11 @@
-# LiveKit Server Configuration for Railway Deployment
 port: 7880
-
-# RTC Configuration - use same port as HTTP
 rtc:
-  # Don't specify tcp_port - it will use the main port (7880)
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
-  # Force TCP-only mode
-  use_ice_tcp: true
-
-# Redis configuration
 redis:
   address: redis.railway.internal:6379
-
-# Disable TURN for now
 turn:
   enabled: false
-
-# Debug logging
 logging:
   level: debug
-
