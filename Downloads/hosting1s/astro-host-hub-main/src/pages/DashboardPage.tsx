@@ -45,6 +45,25 @@ export default function DashboardPage() {
           return
         }
 
+        // Use transactions as source of truth to avoid stale `wallets.balance`.
+        const { data: txs } = await supabase
+          .from('transactions')
+          .select('balance_after,status')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+
+        const completedTxs = (txs ?? []).filter(
+          (tx: any) => tx.status === 'completed' || tx.status == null,
+        )
+        const latestCompleted = completedTxs[0]
+
+        if (latestCompleted?.balance_after != null) {
+          setWalletBalance(Number(latestCompleted.balance_after ?? 0))
+          return
+        }
+
+        // Fallback: if no transactions found, use wallets.balance.
         const { data } = await supabase
           .from('wallets')
           .select('balance')
