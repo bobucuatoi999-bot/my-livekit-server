@@ -14,9 +14,29 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
-import { mockServers } from '../data/mockServers'
 import { supabase } from '../lib/supabase'
 import { formatVND } from '../lib/wallet'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+
+type ServerRow = {
+  id: string
+  name: string
+  ip_address: string
+  tailscale_url: string | null
+  status: 'online' | 'offline' | 'starting' | 'stopping' | 'restarting'
+  ram_mb: number
+  cpu_cores: number
+  disk_gb: number
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -25,13 +45,54 @@ export default function DashboardPage() {
   const greeting =
     hour < 12 ? 'Chào buổi sáng' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'
 
+  const [servers, setServers] = useState<ServerRow[]>([])
+  const [serversLoading, setServersLoading] = useState(true)
+  const [serversError, setServersError] = useState<string | null>(null)
+
   const onlineCount = useMemo(
-    () => mockServers.filter((s) => s.status === 'online').length,
-    [],
+    () => servers.filter((s) => s.status === 'online').length,
+    [servers],
   )
 
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [walletLoading, setWalletLoading] = useState(true)
+
+  useEffect(() => {
+    const loadServers = async () => {
+      setServersLoading(true)
+      setServersError(null)
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setServers([])
+        setServersLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('servers')
+        .select(
+          'id,name,ip_address,tailscale_url,status,ram_mb,cpu_cores,disk_gb',
+        )
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        setServersError(error.message)
+        setServers([])
+        setServersLoading(false)
+        return
+      }
+
+      setServers((data ?? []) as ServerRow[])
+      setServersLoading(false)
+    }
+
+    loadServers()
+  }, [])
 
   useEffect(() => {
     const loadWallet = async () => {
@@ -109,7 +170,9 @@ export default function DashboardPage() {
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
               <div className="flex items-start justify-between">
                 <Server size={20} className="text-cyan-400" />
-                <div className="text-2xl font-bold text-white">{mockServers.length}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {serversLoading ? '...' : servers.length}
+                  </div>
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <div className="text-sm font-medium text-white">Máy chủ</div>
@@ -170,50 +233,175 @@ export default function DashboardPage() {
 
           <section className="mb-8">
             <div className="text-lg font-semibold text-white mb-4">Máy chủ của bạn</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
-              {mockServers.map((server) => {
-                const isOnline = server.status === 'online'
-                return (
-                  <div
-                    key={server.id}
-                    className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-600 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="font-semibold text-white">{server.name}</div>
-                        <div className="text-xs text-gray-500 font-mono">{server.ip}</div>
-                      </div>
-                    </div>
+            {serversError ? (
+              <div className="bg-red-950 border border-red-800 rounded-xl p-4 text-sm text-red-300 mb-8">
+                Không tải được danh sách máy chủ: {serversError}
+              </div>
+            ) : serversLoading ? (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm text-gray-400 mb-8">
+                Đang tải dữ liệu...
+              </div>
+            ) : servers.length === 0 ? (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm text-gray-400 mb-8">
+                empty
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+                {servers.map((server) => {
+                  const isOnline = server.status === 'online'
 
-                    <div className="mt-3 flex items-center gap-2">
-                      {isOnline ? (
-                        <span className="relative inline-flex items-center">
-                          <span className="absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75 animate-ping" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
-                        </span>
-                      ) : (
-                        <span className="inline-flex h-2 w-2 rounded-full bg-red-400" />
-                      )}
-                      <span className={isOnline ? 'text-green-400' : 'text-red-400'}>
-                        {isOnline ? 'Đang chạy' : 'Đã dừng'}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 text-xs text-gray-500">
-                      RAM: {server.ram} · CPU: {server.cpu} · Disk: {server.disk}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigate('/server/' + server.id)}
-                      className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-sm py-2 rounded-lg"
+                  return (
+                    <div
+                      key={server.id}
+                      className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-600 transition-colors"
                     >
-                      Quản lý
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white">{server.name}</div>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <div className="text-xs text-gray-500 font-mono">
+                              {server.ip_address}
+                            </div>
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="rounded-md border border-cyan-700/50 bg-cyan-900/10 px-2 py-1 text-xs font-medium text-cyan-300 transition-colors duration-150 hover:bg-cyan-900/20"
+                                >
+                                  Hướng dẫn kết nối (Tailscale)
+                                </button>
+                              </DialogTrigger>
+
+                              <DialogContent className="border-gray-800 bg-gray-900 text-white">
+                                <DialogHeader>
+                                  <DialogTitle>Kết nối an toàn với Tailscale</DialogTitle>
+                                  <DialogDescription className="text-gray-400">
+                                    Làm theo từng bước để truy cập máy chủ bảo mật.
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="space-y-4 text-sm">
+                                  <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+                                    <p className="font-semibold text-white">
+                                      Bước 1: Tải ứng dụng.
+                                    </p>
+                                    <p className="mt-1 text-gray-400">
+                                      Tải và cài đặt Tailscale trên máy tính hoặc điện thoại của bạn.
+                                    </p>
+                                    <a
+                                      href="https://tailscale.com/download"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="mt-2 inline-flex items-center justify-center rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-cyan-500"
+                                    >
+                                      Tải Tailscale
+                                    </a>
+                                  </div>
+
+                                  <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+                                    <p className="font-semibold text-white">
+                                      Bước 2: Tham gia mạng.
+                                    </p>
+                                    <p className="mt-1 text-gray-400">
+                                      Nhấp vào liên kết chia sẻ máy chủ (Node Share) để đưa thiết bị của bạn vào cùng mạng lưới với máy chủ.
+                                    </p>
+
+                                    {server.tailscale_url ? (
+                                      <a
+                                        href={server.tailscale_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="mt-2 inline-flex items-center justify-center rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-cyan-500"
+                                      >
+                                        Mở Node Share
+                                      </a>
+                                    ) : (
+                                      <p className="mt-2 text-xs text-gray-500">
+                                        Chưa cấu hình liên kết Tailscale cho máy chủ này.
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+                                    <p className="font-semibold text-white">
+                                      Bước 3: Kết nối Terminal.
+                                    </p>
+                                    <p className="mt-1 text-gray-400">
+                                      Mở Command Prompt (Windows) hoặc Terminal (Mac/Linux) và gõ lệnh:
+                                    </p>
+                                    <pre className="mt-2 overflow-x-auto rounded-md border border-gray-800 bg-black/30 px-3 py-2 font-mono text-xs text-cyan-300">
+                                      ssh root@{server.ip_address}
+                                    </pre>
+                                  </div>
+                                </div>
+
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <button
+                                      type="button"
+                                      className="w-full rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-gray-700 sm:w-auto"
+                                    >
+                                      Đã hiểu
+                                    </button>
+                                  </DialogClose>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+
+                          {server.tailscale_url ? (
+                            <a
+                              href={server.tailscale_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 block truncate font-mono text-xs text-cyan-300 transition-colors duration-150 hover:text-cyan-200"
+                            >
+                              Tailscale URL: {server.tailscale_url}
+                            </a>
+                          ) : (
+                            <p className="mt-2 text-xs text-gray-500">
+                              Chưa có Tailscale URL.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2">
+                        {isOnline ? (
+                          <span className="relative inline-flex items-center">
+                            <span className="absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75 animate-ping" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+                          </span>
+                        ) : (
+                          <span className="inline-flex h-2 w-2 rounded-full bg-red-400" />
+                        )}
+                        <span className={isOnline ? 'text-green-400' : 'text-red-400'}>
+                          {isOnline ? 'Đang chạy' : 'Đã dừng'}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 text-xs text-gray-500">
+                        RAM:{' '}
+                        {(server.ram_mb / 1024).toLocaleString('vi-VN', {
+                          maximumFractionDigits: 0,
+                        })}{' '}
+                        GB · CPU: {server.cpu_cores} vCPU · Disk: {server.disk_gb} GB SSD
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate('/server/' + server.id)}
+                        className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-sm py-2 rounded-lg transition-colors duration-150"
+                      >
+                        Quản lý
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </section>
 
           <section className="bg-gray-900 border border-gray-800 rounded-xl p-5">
